@@ -192,6 +192,31 @@ layer("GitLabCli.layer", (it) => {
     }),
   );
 
+  it.effect("does not prefer HTTP transport when the project URL is plaintext", () =>
+    Effect.gen(function* () {
+      const plaintextProject = JSON.stringify({
+        path_with_namespace: "group/project",
+        web_url: "http://gitlab.internal/group/project",
+        http_url_to_repo: "http://gitlab.internal/group/project.git",
+        ssh_url_to_repo: "git@gitlab.internal:group/project.git",
+      });
+      const glab = yield* GitLabCli.GitLabCli;
+
+      for (const configured of ["https\n", "http\n"]) {
+        mockedRun
+          .mockReturnValueOnce(Effect.succeed(processOutput(plaintextProject)))
+          .mockReturnValueOnce(Effect.succeed(processOutput(configured)));
+
+        const result = yield* glab.getRepositoryCloneUrls({
+          cwd: "/repo",
+          repository: "group/project",
+        });
+
+        assert.strictEqual(result.preferredCloneProtocol, undefined);
+      }
+    }),
+  );
+
   it.effect("leaves the clone protocol unset when glab config cannot be read", () =>
     Effect.gen(function* () {
       mockedRun.mockReturnValueOnce(Effect.succeed(processOutput(projectJson))).mockReturnValueOnce(
