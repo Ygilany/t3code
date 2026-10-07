@@ -483,6 +483,7 @@ export const make = Effect.gen(function* () {
 
   // `--host` falls back to the global setting, matching the protocol glab itself
   // would clone with. A missing or unreadable setting leaves the caller's default.
+  // The key keeps the port: glab writes and reads host entries as `host:port`.
   const readGitProtocol = (input: { readonly cwd: string; readonly url: string }) => {
     const webUrl = parseUrl(input.url);
     const host = webUrl?.host || null;
