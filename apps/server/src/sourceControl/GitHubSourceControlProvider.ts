@@ -285,7 +285,28 @@ export const makeDiscovery = Effect.gen(function* () {
         },
       } satisfies SourceControlProviderDiscoveryItem;
     }),
-    refineUnknownRemote: () => Effect.succeed(null),
+    refineUnknownRemote: Effect.fn("GitHubSourceControlProvider.refineUnknownRemote")(
+      function* (input: {
+        readonly cwd: string;
+        readonly context: SourceControlProvider.SourceControlProviderContext;
+      }) {
+        const auth = yield* process
+          .run({
+            operation: "source-control.discovery.refine-unknown-remote",
+            command: discovery.executable,
+            args: discovery.authArgs,
+            cwd: input.cwd,
+            allowNonZeroExit: true,
+            timeoutMs: 5_000,
+            maxOutputBytes: 8_000,
+            appendTruncationMarker: true,
+          })
+          .pipe(Effect.orElseSucceed(() => null));
+        return auth === null
+          ? null
+          : refineUnknownGitHubRemote({ cwd: input.cwd, context: input.context, auth });
+      },
+    ),
   } satisfies SourceControlManagedCliDiscoverySpec;
 });
 
